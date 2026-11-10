@@ -1,0 +1,91 @@
+#include <iostream>
+#include <iomanip>
+#include <cmath>
+#include <limits>
+#include "kerr.hpp"
+
+int main() {
+
+    std::cout << std::setprecision(12);
+
+    P p;
+
+    std::cout << "========== PARAMETERS ==========\n";
+    std::cout << "a  = " << p.a << '\n';
+    std::cout << "E  = " << p.E << '\n';
+    std::cout << "L  = " << p.L << '\n';
+    std::cout << "B  = " << p.B << '\n';
+    std::cout << "Q  = " << p.Q << '\n';
+    std::cout << "rh = " << rh(p) << "\n\n";
+
+    const double r = 8.0;
+    const double th = PI / 2.0;
+    const double h = 1e-5;
+
+    std::cout << "========== HAMILTONIAN ==========\n";
+
+    const double H = H1(r, th, p);
+
+    std::cout << "H1(r,theta) = " << H << '\n';
+    std::cout << "Mass-shell H = -0.5\n";
+    std::cout << "Residual = " << H + 0.5 << "\n\n";
+
+    std::cout << "========== AUTOMATIC DIFFERENTIATION ==========\n";
+
+    const D rd(r, 1.0, 0.0);
+    const D td(th, 0.0, 1.0);
+
+    const D Hd = H1(rd, td, p);
+
+    const double dHdr = (H1(r + h, th, p) - H1(r - h, th, p)) / (2.0 * h);
+    const double dHdt = (H1(r, th + h, p) - H1(r, th - h, p)) / (2.0 * h);
+
+    std::cout << "dH/dr (AD) = " << Hd.r << '\n';
+    std::cout << "dH/dr (FD) = " << dHdr << '\n';
+    std::cout << "Error r    = " << std::abs(Hd.r - dHdr) << '\n';
+
+    std::cout << "dH/dtheta (AD) = " << Hd.t << '\n';
+    std::cout << "dH/dtheta (FD) = " << dHdt << '\n';
+    std::cout << "Error theta    = " << std::abs(Hd.t - dHdt) << "\n\n";
+
+    std::cout << "========== EFFECTIVE POTENTIAL ==========\n";
+
+    const double V = veff(r, p);
+
+    std::cout << "Veff(" << r << ") = " << V << '\n';
+    std::cout << "E - Veff = " << p.E - V << "\n\n";
+
+    std::cout << "========== INITIAL CONDITIONS ==========\n";
+
+    const auto pt = init_pt(r, p);
+
+    if (pt) {
+        std::cout << "p_theta = " << *pt << '\n';
+        std::cout << "p_theta^2 = " << *pt * *pt << '\n';
+    }
+    else {
+        std::cout << "Forbidden orbit at r = " << r << '\n';
+    }
+
+    std::cout << "\n========== SCHWARZSCHILD LIMIT ==========\n";
+
+    P s;
+    s.a = 0.0;
+    s.B = 0.0;
+    s.Q = 0.0;
+
+    std::cout << "rh = " << rh(s) << '\n';
+    std::cout << "H1 = " << H1(r, th, s) << '\n';
+    std::cout << "Veff = " << veff(r, s) << '\n';
+
+    const auto pt_s = init_pt(r, s);
+
+    if (pt_s)
+        std::cout << "p_theta = " << *pt_s << '\n';
+    else
+        std::cout << "Forbidden orbit\n";
+
+    std::cout << "\n========== END ==========\n";
+
+    return 0;
+}
